@@ -36,8 +36,8 @@ public class PlayerCtrl : MonoBehaviour {
         h = Input.GetAxis("Horizontal");
         v = Input.GetAxis("Vertical");
 
-        Debug.Log("H=" + h.ToString());
-        Debug.Log("V=" + v.ToString());
+        //Debug.Log("H=" + h.ToString());
+        //Debug.Log("V=" + v.ToString());
 
         //计算前后左右移动方向向量
         Vector3 moveDir = (Vector3.forward * v) + (Vector3.right * h);
