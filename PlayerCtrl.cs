@@ -22,6 +22,7 @@ public class PlayerCtrl : MonoBehaviour {
 
     public Anim anim;
     public Animation _animation;
+    public int hp = 100;
 
     // Use this for initialization
     void Start () {
@@ -72,6 +73,35 @@ public class PlayerCtrl : MonoBehaviour {
         {
             //待机动画
             _animation.CrossFade(anim.idle.name, 0.3f);
+        }
+    }
+
+    //被怪物攻击到使触发的函数
+    private void OnTriggerEnter(Collider coll) {
+        //如果发生碰撞的是带有PUNCH标签的怪物的手，扣血
+        if(coll.gameObject.tag == "PUNCH")
+        {
+            hp -= 10;
+            Debug.Log("Player's hp = " + hp.ToString());
+            //生命值为0时，人物死亡
+            if (hp <= 0)
+            {
+                PlayerDie();
+            }
+        }
+    }
+
+    //角色死亡函数
+    void PlayerDie() {
+        Debug.Log("Game Over");
+
+        //获取所有拥有Monster Tag的游戏对象
+        GameObject[] monsters = GameObject.FindGameObjectsWithTag("MONSTER");
+
+        //依次调用所有怪兽的OnPlayerDie函数
+        foreach(GameObject monster in monsters)
+        {
+            monster.SendMessage("OnPlayerDie", SendMessageOptions.DontRequireReceiver);
         }
     }
 }
