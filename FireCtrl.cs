@@ -34,8 +34,11 @@ public class FireCtrl : MonoBehaviour {
     void Fire() {
         //动态生成子弹的函数
         CreateBullet();
+
+        //开枪时发声的函数
+        GameMgr.instance.PlaySfx(firePos.position, fireSfx);
         //播放声音
-        source.PlayOneShot(fireSfx, 0.9f);
+        //source.PlayOneShot(fireSfx, 0.9f);
         //使用例程调用处理MuzzleFlash效果的函数
         StartCoroutine(this.ShowMuzzleFlash());
     }

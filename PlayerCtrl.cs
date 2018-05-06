@@ -1,4 +1,5 @@
 ﻿using UnityEngine;
+using UnityEngine.UI;
 using System.Collections;
 
 //挂载动画片段
@@ -23,10 +24,24 @@ public class PlayerCtrl : MonoBehaviour {
     public Anim anim;
     public Animation _animation;
     public int hp = 100;
+    private int initHp;
+    public Image imgHpBar;
+
+    //声明委派和事件
+    public delegate void PlayerDieHandler();
+    public static event PlayerDieHandler OnPlayerDie;
+
+    //访问游戏管理器的变量
+    private GameMgr gameMgr;
 
     // Use this for initialization
     void Start () {
+        initHp = hp;
         tr = GetComponent<Transform>();
+
+        //获取GameMgr脚本
+        gameMgr = GameObject.Find("GameManager").GetComponent<GameMgr>();
+
         _animation = GetComponentInChildren<Animation>();
         _animation.clip = anim.idle;
         _animation.Play();
@@ -82,7 +97,11 @@ public class PlayerCtrl : MonoBehaviour {
         if(coll.gameObject.tag == "PUNCH")
         {
             hp -= 10;
-            Debug.Log("Player's hp = " + hp.ToString());
+
+            //调整Image UI元素的fillAmount属性。以调整生命条长度
+            imgHpBar.fillAmount = (float)hp / (float)initHp;
+
+            //Debug.Log("Player's hp = " + hp.ToString());
             //生命值为0时，人物死亡
             if (hp <= 0)
             {
@@ -95,7 +114,8 @@ public class PlayerCtrl : MonoBehaviour {
     void PlayerDie() {
         Debug.Log("Game Over");
 
-        //获取所有拥有Monster Tag的游戏对象
+        /*
+         * //获取所有拥有Monster Tag的游戏对象
         GameObject[] monsters = GameObject.FindGameObjectsWithTag("MONSTER");
 
         //依次调用所有怪兽的OnPlayerDie函数
@@ -103,5 +123,13 @@ public class PlayerCtrl : MonoBehaviour {
         {
             monster.SendMessage("OnPlayerDie", SendMessageOptions.DontRequireReceiver);
         }
+        */
+        //触发事件
+        OnPlayerDie();
+        //更新游戏管理器的isGameOver变量值以停止生成怪兽
+        gameMgr.isGameOver = true;
+
+        //访问GameMgr的单例并更改其isGameOver变量值
+        GameMgr.instance.isGameOver = true;
     }
 }

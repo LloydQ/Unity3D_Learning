@@ -18,6 +18,9 @@ public class MonsterCtrl : MonoBehaviour {
     //血迹贴图效果预设
     public GameObject bloodDecal;
 
+    //怪兽血量
+    private int hp = 100;
+
     //追击范围
     public float traceDist = 100.0f;
     //攻击范围
@@ -26,9 +29,11 @@ public class MonsterCtrl : MonoBehaviour {
     //怪兽是否死亡
     private bool isDie = false;
 
-	// Use this for initialization
-	void Start () {
+    //声明GameUI对象
+    private GameUI gameUI;
 
+	// Use this for initialization
+	void Awake () {
         //获取怪兽的transform组件
         monsterTr = this.gameObject.GetComponent<Transform>();
         //获取怪兽要追击的对象——玩家的transform组件
@@ -37,6 +42,13 @@ public class MonsterCtrl : MonoBehaviour {
         nvAgent = this.gameObject.GetComponent<NavMeshAgent>();
         //获取Animator组件
         animator = this.gameObject.GetComponent<Animator>();
+        //获取GameUI游戏对象的GameUI脚本
+        gameUI = GameObject.Find("GameUI").GetComponent<GameUI>();
+	}
+
+    //脚本运行时注册事件
+    private void OnEnable() {
+        PlayerCtrl.OnPlayerDie += this.OnPlayerDie;
 
         /*
          * 这里检查怪物状态的逻辑使用了协程函数，可以使代码更加高效，简洁，不必像
@@ -47,11 +59,15 @@ public class MonsterCtrl : MonoBehaviour {
         StartCoroutine(this.CheckMonsterStates());
         //运行根据怪兽当前状态执行相应例程的协程函数
         StartCoroutine(this.MonsterAction());
+    }
 
-	}
-	
-	// Update is called once per frame
-	void Update () {
+    //脚本结束运行时解除事件
+    private void OnDisable() {
+        PlayerCtrl.OnPlayerDie -= this.OnPlayerDie;
+    }
+
+    // Update is called once per frame
+    void Update () {
         nvAgent.destination = playerTr.position;
     }
 
@@ -106,6 +122,13 @@ public class MonsterCtrl : MonoBehaviour {
         {
             //调用血迹效果函数
             CreateBloodEffect(collision.transform.position);
+
+            //受到子弹伤害并减少怪兽hp
+            hp -= collision.gameObject.GetComponent<BulletCtrl>().damage;
+            if (hp <= 0)
+            {
+                MonsterDie();
+            }
             //删除子弹对象Bullet
             Destroy(collision.gameObject);
             //触发isHit Trigger，使怪兽从Any State转换为gothit状态
@@ -141,5 +164,55 @@ public class MonsterCtrl : MonoBehaviour {
         //停止追击并播放动画
         nvAgent.Stop();
         animator.SetTrigger("isPlayerDie");
+    }
+
+    //怪兽死亡处理例程
+    void MonsterDie() {
+
+        //将死亡的怪兽Tag更改为Untagged
+        gameObject.tag = "Untagged";
+
+        //停止所有例程
+        StopAllCoroutines();
+
+        isDie = true;
+        monsterState = MonsterState.die;
+        nvAgent.Stop();
+        animator.SetTrigger("isDie");
+
+        //禁用怪兽的Collider
+        gameObject.GetComponentInChildren<CapsuleCollider>().enabled = false;
+
+        foreach (Collider coll in gameObject.GetComponentsInChildren<SphereCollider>())
+        {
+            coll.enabled = false;
+        }
+
+        //调用GameUI脚本处理分数累加与显示的函数
+        gameUI.DispScore(50);
+
+        //调用将怪兽放回对象池的协程函数
+        StartCoroutine(this.PushObjectPool());
+    }
+
+    IEnumerator PushObjectPool() {
+        yield return new WaitForSeconds(3.0f);
+
+        //初始化各种变量
+        isDie = false;
+        hp = 100;
+        gameObject.tag = "MONSTER";
+        monsterState = MonsterState.idle;
+
+        //重新激活怪兽的Collider
+        gameObject.GetComponentInChildren<CapsuleCollider>().enabled = true;
+
+        foreach (Collider coll in gameObject.GetComponentsInChildren<SphereCollider>())
+        {
+            coll.enabled = true;
+        }
+
+        //禁用怪兽
+        gameObject.SetActive(false);
     }
 }
